@@ -8,58 +8,78 @@ print(size, b, c)
 
 tabuleiro = [[None for _ in range(size)] for _ in range(size)]
 
-# tabuleiro[0][0] = 'a'
-# tabuleiro[-1][-1] = 'a'
-# tabuleiro[4][4] = 'b'
-# tabuleiro[-2][4] = 'a'
-# tabuleiro[-1][4] = 'b'
 
-
-def valido(tabuleiro):
+def valido():
     for i, line in enumerate(tabuleiro):
         for j, col in enumerate(line):
-            if col is not None and not verifica(tabuleiro, col, i, j):
+            if col is not None and not verifica(col, i, j)[0]:
                 return False
     return True
 
-#                   l  c
-def verifica(tabuleiro, letra, i, j):
+
+def veri_good():
+    for i, line in enumerate(tabuleiro):
+        for j, col in enumerate(line):
+            if col is not None:
+                valido, inimigos = verifica(col, i, j)
+                if not valido or inimigos < 2:
+                    return False
+    return True
+
+
+def verifica_direcao(letra, i, j, di, dj) -> (bool, bool):
+    while 0 < i <= size and 0 < j <= size:
+        i += di
+        j += dj
+
+        w = tabuleiro[i][j]
+
+        if w == letra:
+            return False, False
+        if w is not None and w != letra:
+            return True, True
+
+    return True, False
+
+
+def verifica(letra, i, j) -> (bool, int):
     # letra = tabuleiro[i][j]
+    ve = 0
 
     # ←←←←
     for k in range(j-1, -1, -1):
         w = tabuleiro[i][k]
         if w == letra:
-            # print("não foi no ←←←←")
-            return False
+            return (False, ve)
         if w is not None and w != letra:
+            ve += 1
             break
 
     # →→→→
     for k in range(j+1, size):
         w = tabuleiro[i][k]
         if w == letra:
-            # print("não foi no →→→→")
-            return False
+            return (False, ve)
         if w is not None and w != letra:
+            ve += 1
             break
 
     # ↑↑↑↑
     for k in range(i-1, -1, -1):
         w = tabuleiro[k][j]
         if w == letra:
-            # print("não foi no ↑↑↑↑")
-            return False
+            return (False, ve)
         if w is not None and w != letra:
+            ve += 1
             break
 
     # ↓↓↓↓
     for k in range(i+1, size):
         w = tabuleiro[k][j]
         if w == letra:
-            # print("não foi no ↓↓↓↓")
-            return False
+            return (False, ve)
         if w is not None and w != letra:
+            ve += 1
             break
 
     # ←↑←↑
@@ -68,9 +88,9 @@ def verifica(tabuleiro, letra, i, j):
         k += 1
         w = tabuleiro[i-k][j-k]
         if w == letra:
-            # print("não foi no ←↑←↑")
-            return False
+            return (False, ve)
         if w is not None and w != letra:
+            ve += 1
             break
 
     # →↑→↑
@@ -79,9 +99,9 @@ def verifica(tabuleiro, letra, i, j):
         k += 1
         w = tabuleiro[i-k][j+k]
         if w == letra:
-            # print("não foi no →↑→↑")
-            return False
+            return (False, ve)
         if w is not None and w != letra:
+            ve += 1
             break
 
     # ←↓←↓
@@ -90,9 +110,9 @@ def verifica(tabuleiro, letra, i, j):
         k += 1
         w = tabuleiro[i+k][j-k]
         if w == letra:
-            # print("não foi no ←↓←↓")
-            return False
+            return (False, ve)
         if w is not None and w != letra:
+            ve += 1
             break
 
     # →↓→↓
@@ -101,71 +121,78 @@ def verifica(tabuleiro, letra, i, j):
         k += 1
         w = tabuleiro[i+k][j+k]
         if w == letra:
-            # print("não foi no →↓→↓")
-            return False
+            return (False, ve)
         if w is not None and w != letra:
+            ve += 1
             break
 
-    return True
+    return (True, ve)
 
 
-def copy_tabuleiro(tabuleiro):
-    return [[i for i in line] for line in tabuleiro]
+
+
+def desenha_tabuleiro(tabuleiro):
+    buf = ""
+
+    buf += "+"
+    buf += "-"*size*2 + "+\n"
+
+    for line in tabuleiro:
+        buf += "|"
+        for col in line:
+            if col is None:
+                buf += "  "
+            else:
+                buf += col + " "
+        buf += "|\n"
+
+    buf += "+"
+    buf += "-"*size*2 + "+\n"
+
+    return buf
 
 
 def print_tabuleiro(tabuleiro):
-    print("+", end="")
-    print("-"*size*2, end="+\n")
-    for line in tabuleiro:
-        print("|", end="")
-        for col in line:
-            if col is None:
-                print("  ", end="")
-            else:
-                print(f"{col} ", end="")
-        print("|")
-    print("+", end="")
-    print("-"*size*2, end="+\n")
+    print(desenha_tabuleiro(tabuleiro))
 
 
-def faz(tabuleiro, b, c, last_c: str, last_pos: (int, int)):
-    if not valido(tabuleiro):
-        print('not valido')
-        tabuleiro[last_pos[0]][last_pos[1]] = None
-        if last_c == 'b':
-            b += 1
-        if last_c == 'c':
-            c += 1
-        return False
+bom = 0
 
-    if b <= 0 and c <= 0:
+
+def faz(b, c, last_i: int):
+    global verificados
+    last_line = (last_i >> 1) // size
+    last_col = (last_i >> 1) % size
+
+    if not valido():
+        tabuleiro[last_line][last_col] = None
         return
 
-    for i in range(size*size*2):
+    if b <= 0 and c <= 0:
+        if veri_good():
+            global bom
+            bom += 1
+        return
+
+    for i in range(last_i, size*size*2):
         j = i >> 1
         line = j // size
         col = j % size
         if tabuleiro[line][col] is not None:
             continue
-        if i % 2 == 0 and b > 0:  # bigodudo
+        if i % 2 == 0 and b > 0:      # bigodudo
             tabuleiro[line][col] = 'b'
-            # b -= 1
-            print(f"fazendo com b em [{line}][{col}]")
-            faz(copy_tabuleiro(tabuleiro), b-1, c, 'b', (line, col))
-        elif i % 2 == 1 and c > 0:           # capeta
+            faz(b-1, c, i)
+        elif i % 2 == 1 and c > 0:    # capeta
             tabuleiro[line][col] = 'c'
-            # c -= 1
-            print(f"fazendo com c em [{line}][{col}]")
-            faz(copy_tabuleiro(tabuleiro), b, c-1, 'c', (line, col))
-            # faz('c', (line, col))
+            faz(b, c-1, i)
 
-        clear()
-        print_tabuleiro(tabuleiro)
-        print(f"{b=}, {c=}, {i=}, {size=}")
+        # clear()
+        # print_tabuleiro(tabuleiro)
+        # print(f"{bom=}")
         # input()
-        time.sleep(0.01)
+        # time.sleep(0.01)
 
-        # desfaz
         tabuleiro[line][col] = None
 
 
@@ -173,44 +200,6 @@ def clear():
     print(chr(27) + "[2J")
 
 
-faz(tabuleiro, b, c, None, (0, 0))
+faz(b, c, 0)
 
-#   char, line, col
-# pilha = []
-# while True:
-#     clear()
-#     print_tabuleiro()
-#     if b > 0:
-#         popado = ('', 0, 0)
-#         if len(pilha) != 0:
-#             popado = pilha.pop()
-#         c, i, j = popado
-
-#         j += 1
-#         next = ('b', i + j//size, j % size)
-
-#     input()
-
-
-# clear()
-# print_tabuleiro()
-# input()
-# clear()
-
-# print(valido())
-
-
-
-
-
-# copia ultimo movimento
-# adiciona movimento atual
-# se for válido, continua
-# se não, vai para a próxima casa
-
-
-# pop ultimo movimento
-# verifica movimento atual
-# se for válido, adiciona popado e atual
-# se não, vai para a próxima casa
-
+print(f"{bom=}")
